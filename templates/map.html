@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Metro Route Maps</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .maps-container {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .map-box {
+      flex: 1;
+      min-width: 350px;
+      max-width: 600px;
+      height: 70vh;
+      border: 2px solid #007bff;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f0f8ff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .map-title {
+      text-align: center;
+      font-weight: bold;
+      color: #007bff;
+      margin: 10px 0 0 0;
+      background: #e6f0ff;
+      padding: 8px 0;
+    }
+    #map1, #map2 {
+      width: 100%;
+      height: 90%;
+      flex: 1;
+    }
+    .distance-info {
+      text-align: center;
+      padding: 8px 0;
+      background: #e6f0ff;
+      color: #333;
+      font-size: 16px;
+      border-top: 1px solid #b3d1ff;
+    }
+    .back-btn {
+      margin: 20px;
+      display: inline-block;
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      text-decoration: none;
+    }
+    .back-btn:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <a href="/" class="back-btn">← Back</a>
+  <div class="maps-container">
+    <div class="map-box">
+      <div class="map-title">You → Your Nearest Metro</div>
+      <div id="map1"></div>
+      <div id="distance1" class="distance-info"></div>
+    </div>
+    <div class="map-box">
+      <div class="map-title">Destination Metro → Destination</div>
+      <div id="map2"></div>
+      <div id="distance2" class="distance-info"></div>
+    </div>
+  </div>
+  <script>
+    function safeParse(val) {
+      var f = parseFloat(val);
+      return isNaN(f) ? null : f;
+    }
+    function initMaps() {
+      // Map 1: User to User's Nearest Metro
+      const userLoc = { lat: safeParse("{{ user_lat }}"), lng: safeParse("{{ user_lng }}") };
+      const sourceMetro = { lat: safeParse("{{ source_lat }}"), lng: safeParse("{{ source_lng }}") };
+      const map1 = new google.maps.Map(document.getElementById("map1"), {
+        center: userLoc,
+        zoom: 14,
+      });
+      if (userLoc.lat && userLoc.lng && sourceMetro.lat && sourceMetro.lng) {
+        new google.maps.Marker({ position: userLoc, map: map1, label: 'U', title: 'Your Location' });
+        new google.maps.Marker({ position: sourceMetro, map: map1, label: 'M', title: 'Your Nearest Metro' });
+        const directionsService1 = new google.maps.DirectionsService();
+        const directionsRenderer1 = new google.maps.DirectionsRenderer({ map: map1 });
+        directionsService1.route({
+          origin: userLoc,
+          destination: sourceMetro,
+          travelMode: google.maps.TravelMode.TRANSIT
+        }, (res, status) => {
+          if (status === 'OK') {
+            directionsRenderer1.setDirections(res);
+            // Show distance
+            const leg = res.routes[0].legs[0];
+            document.getElementById('distance1').textContent =
+              "Distance: " + leg.distance.text + " (" + leg.duration.text + ")";
+          } else {
+            document.getElementById('distance1').textContent = "Route not found.";
+          }
+        });
+      } else {
+        document.getElementById('distance1').textContent = "Route not found.";
+      }
+
+      // Map 2: Destination Metro to Destination
+      const destMetro = { lat: safeParse("{{ dest_lat }}"), lng: safeParse("{{ dest_lng }}") };
+      const destination = { lat: safeParse("{{ destination_lat }}"), lng: safeParse("{{ destination_lng }}") };
+      const map2 = new google.maps.Map(document.getElementById("map2"), {
+        center: destMetro,
+        zoom: 14,
+      });
+      if (destMetro.lat && destMetro.lng && destination.lat && destination.lng) {
+        new google.maps.Marker({ position: destMetro, map: map2, label: 'M', title: 'Destination Metro' });
+        new google.maps.Marker({ position: destination, map: map2, label: 'D', title: 'Destination' });
+        const directionsService2 = new google.maps.DirectionsService();
+        const directionsRenderer2 = new google.maps.DirectionsRenderer({ map: map2 });
+        directionsService2.route({
+          origin: destMetro,
+          destination: destination,
+          travelMode: google.maps.TravelMode.TRANSIT
+        }, (res, status) => {
+          if (status === 'OK') {
+            directionsRenderer2.setDirections(res);
+            // Show distance
+            const leg = res.routes[0].legs[0];
+            document.getElementById('distance2').textContent =
+              "Distance: " + leg.distance.text + " (" + leg.duration.text + ")";
+          } else {
+            document.getElementById('distance2').textContent = "Route not found.";
+          }
+        });
+      } else {
+        document.getElementById('distance2').textContent = "Route not found.";
+      }
+    }
+  </script>
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={{ google_key }}&callback=initMaps">
+  </script>
+</body>
+</html>

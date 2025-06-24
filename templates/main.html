@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Find Your Metro Route</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>
+    window.onload = function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          document.getElementById('lat').value = position.coords.latitude;
+          document.getElementById('lng').value = position.coords.longitude;
+        }, function() {
+          alert("Could not get your location. Default location will be used.");
+        });
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    };
+  </script>
+</head>
+<body>
+  <h2>Enter Your Destination</h2>
+  <form method="POST" action="/">
+    <input type="text" name="destination" placeholder="Enter destination" required>
+    <input type="hidden" name="lat" id="lat" value="{{ user_lat or '' }}">
+    <input type="hidden" name="lng" id="lng" value="{{ user_lng or '' }}">
+    <button type="submit">Find Nearest Metros</button>
+  </form>
+
+  {% if source_metro and dest_metro %}
+    <div class="metro-box">
+      <div class="metro-title">Nearest Metro Stations</div>
+      <div><b>Your Nearest Metro:</b> {{ source_metro['name'] }}<br>
+      <small>{{ source_metro['address'] }}</small></div>
+      <div style="margin-top:10px;"><b>Destination Nearest Metro:</b> {{ dest_metro['name'] }}<br>
+      <small>{{ dest_metro['address'] }}</small></div>
+    </div>
+    <form method="POST" action="/map">
+      <input type="hidden" name="user_lat" value="{{ user_lat }}">
+      <input type="hidden" name="user_lng" value="{{ user_lng }}">
+      <input type="hidden" name="source_lat" value="{{ source_metro['lat'] }}">
+      <input type="hidden" name="source_lng" value="{{ source_metro['lng'] }}">
+      <input type="hidden" name="dest_lat" value="{{ dest_metro['lat'] }}">
+      <input type="hidden" name="dest_lng" value="{{ dest_metro['lng'] }}">
+      <input type="hidden" name="destination_lat" value="{{ dest_lat }}">
+      <input type="hidden" name="destination_lng" value="{{ dest_lng }}">
+      <button class="view-map-btn" type="submit">View Map</button>
+    </form>
+  {% endif %}
+</body>
+</html>
